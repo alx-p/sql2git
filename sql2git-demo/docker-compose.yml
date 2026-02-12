@@ -4,8 +4,8 @@ services:
     build: .
     container_name: sql2git-demo-pg
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: sql2git_demo_db
     ports:
       - "5432:5432"
