@@ -11,11 +11,19 @@ PgToGit
 ```
 cd sql2git-demo
 ```
-1. Скопируйте актуальные файлы в каталог sql2git-demo
+2. Скопируйте актуальные файлы в каталог sql2git-demo
 ```
 cp ../gitschema.sql ../sql2git.demo_db.sh .
 ```
-2. Запустите docker compose
+3. Запустите docker compose
 ```
 sudo docker compose up --build
+```
+4. Загрузите демо-базу в контейнер
+```
+sudo docker exec -it -u postgres sql2git-demo-pg psql -f demo-schema.sql -d sql2git_demo_db
+```
+5. Загрузите конфигурационные таблицы в контейнер
+```
+sudo docker exec -it -u postgres sql2git-demo-pg psql -f gitschema.sql -d sql2git_demo_db
 ```

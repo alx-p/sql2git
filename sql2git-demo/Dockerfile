@@ -11,6 +11,8 @@ WORKDIR /var/lib/postgresql/git
 
 COPY sql2git.demo_db.sh .
 
+COPY gitschema.sql demo-schema.sql ../
+
 RUN chown -R postgres:postgres . && \
     chown postgres:postgres sql2git.demo_db.sh && \
     chmod +x sql2git.demo_db.sh
@@ -25,4 +27,5 @@ RUN cd functions && \
     git config --global user.name "sql2git" && \
     git config --global user.email "email@example.com"
 
+WORKDIR /var/lib/postgresql
 USER root
