@@ -2,11 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict 8vZh5fOguV26jsg1bApTi9VWNj72LGGJU2uStg4PyUf4ldmrbEHJXXeG8UrL9qm
-
--- Dumped from database version 13.22 (Debian 13.22-1.pgdg12+1)
--- Dumped by pg_dump version 13.22 (Debian 13.22-1.pgdg12+1)
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -39,16 +34,16 @@ declare
 begin
   case p_mode 
     when 1 then
-      return concat_ws(' ', 'pg_dump demo_db -s -t', l_tab_name, $$ | sed '/^--.*$/d;/^SET .*$/d;/^SELECT pg_catalog.*$/d;/./,/^$/!d'$$)::varchar;
+      return concat_ws(' ', 'pg_dump sql2git_demo_db -s -t', l_tab_name, $$ | sed '/^--.*$/d;/^SET .*$/d;/^SELECT pg_catalog.*$/d;/./,/^$/!d'$$)::varchar;
     when 2 then      
       if exists (select 1 
                    from git.refs
                   where scheme_name = p_schema_name 
                     and table_name = p_table_name) 
       then
-        return 'psql demo_db -c "select * from '||l_tab_name||' order by 1;"';
+        return 'psql sql2git_demo_db -c "select * from '||l_tab_name||' order by 1;"';
       else
-        return 'psql demo_db -t -c "select null;"';
+        return 'psql sql2git_demo_db -t -c "select null;"';
       end if;
   end case;
 exception
@@ -200,6 +195,3 @@ ALTER TABLE ONLY git.schemas
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict 8vZh5fOguV26jsg1bApTi9VWNj72LGGJU2uStg4PyUf4ldmrbEHJXXeG8UrL9qm
-

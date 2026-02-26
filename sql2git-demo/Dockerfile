@@ -24,6 +24,8 @@ RUN cd functions && \
     cd ../tables && \
     git init && \
     (crontab -l 2>/dev/null; echo "*/5 * * * *  /var/lib/postgresql/git/sql2git.demo_db.sh /var/lib/postgresql/git 2>/dev/null") | crontab - && \
+    (crontab -l 2>/dev/null; echo "30 00 * * 0  cd /var/lib/postgresql/git/functions/ && /bin/find . -type f -name '*.sql' -mtime +7 -exec /usr/bin/git rm {} \;") | crontab - && \
+    (crontab -l 2>/dev/null; echo "35 00 * * 0  cd /var/lib/postgresql/git/tables/ && /bin/find . -type f -name '*.sql' -mtime +7 -exec /usr/bin/git rm {} \;") | crontab - && \
     git config --global user.name "sql2git" && \
     git config --global user.email "email@example.com"
 
