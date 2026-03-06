@@ -1,55 +1,118 @@
 #set -x
 #!/bin/bash
+set -euo pipefail  # Более строгий режим выполнения
 
-### Functions
-
-usage()
-{
-   myname=$(basename $0)
-   echo "usage: $myname <base path>"
+### Функции
+usage() {
+    myname=$(basename "$0")
+    echo "Usage: $myname <base_path>"
+    echo "Example: $myname /path/to/git/repo"
+    exit 1
 }
 
-### Main
+### Основная логика
+main() {
+    local base_path="$1"
 
-if [ "$1" == "" ]; then
-   usage
-   exit 1
-else
-   gitbase=${1%'/'}
-   gitf="${gitbase}/functions"
-   gitt="${gitbase}/tables"
+    # Проверка аргументов
+    if [[ -z "$base_path" ]]; then
+        usage
+    fi
 
-   # PostgreSQL functions
-   if [ -d "${gitf}/.git" ]; then 
-      cd ${gitf}
-      for i in $(psql sql2git_demo_db -tXw -c "select specific_schema||'.'||routine_name from information_schema.routines where specific_schema not in ('pg_catalog','information_schema','tech_docum','temp')"); do
-         psql sql2git_demo_db -tXw -c "SELECT pg_get_functiondef(f.oid) FROM pg_catalog.pg_proc f INNER JOIN pg_catalog.pg_namespace n ON (f.pronamespace = n.oid) WHERE f.proname='${i##*.}' AND n.nspname = '${i%%.*}'" |sed 's/\(\\r\)\?[[:blank:]]*+$//' > ${gitf}/${i}.sql
-#         psql demo_db -tXw -c "SELECT '---------- �пи�ание ��нк�ии ----------'||CHR(10)||'/*'||CHR(10)|| ds.description||CHR(10)||'*/' FROM pg_proc p LEFT OUTER JOIN pg_description ds ON ds.objoid = p.oid INNER JOIN pg_namespace n ON p.pronamespace = n.oid WHERE p.proname = '${i##*.}' AND n.nspname = '${i%%.*}'" | sed 's/\(\\r\)\?[[:blank:]]*+$//' >> ${gitf}/${i}.sql
-         git add ${i}.sql >/dev/null
-      done
-      git commit -a -m "cron backup `date +'%d.%m.%Y %R'`" >/dev/null
-#      git push -u origin master >/dev/null
-   else
-      echo "Can't find \".git\" in the ${gitf}"
-   fi
+    # Удаляем завершающий слеш, если он есть
+    local gitbase="${base_path%/}"
+    local git_functions="${gitbase}/functions"
+    local git_tables="${gitbase}/tables"
+    local db_name="sql2git_demo_db"
 
-   # PostgreSQL tables
-   if [ -d "${gitt}/.git" ]; then
-      cd ${gitt}
-      for i in $(psql sql2git_demo_db -tXw -c "select ns.nspname||'.'||cl.relname from pg_class cl join pg_namespace ns on ns.oid=cl.relnamespace join git.schemas cls on cls.scheme_name =ns.nspname where cl.relkind='r'"); do
-         # psql demo_db -tXw -c "select public.get_table_ddl(p_table_name=>'${i##*.}',p_schema_name=>'${i%%.*}')" | sed 's/\(\\r\)\?[[:blank:]]*+$//' >${gitt}/${i}.sql
+    # Обработка функций
+    process_functions() {
+        if [[ -d "${git_functions}/.git" ]]; then
+            cd "${git_functions}" || exit 1
 
-         dumpcmd=$(psql sql2git_demo_db -tXw -c "select git.get_dump_cmd(p_table_name=>'${i##*.}',p_schema_name=>'${i%%.*}',p_mode=>1)")
-         eval "$dumpcmd" > ${gitt}/${i}.sql
+            # Получаем список функций
+            local functions
+            functions=$(psql -tXw -d "$db_name" -c "
+                SELECT specific_schema || '.' || routine_name
+                FROM information_schema.routines
+                WHERE specific_schema NOT IN ('pg_catalog', 'information_schema', 'tech_docum', 'temp')
+            ")
 
-         dumpcmd=$(psql sql2git_demo_db -tXw -c "select git.get_dump_cmd(p_table_name=>'${i##*.}',p_schema_name=>'${i%%.*}',p_mode=>2)")
-         eval "$dumpcmd" >> ${gitt}/${i}.sql
+            # Обрабатываем каждую функцию
+            while IFS= read -r func; do
+                local schema="${func%%.*}"
+                local name="${func##*.}"
 
-         git add ${i}.sql >/dev/null
-      done
-      git commit -a -m "cron backup `date +'%d.%m.%Y %R'`" >/dev/null
-#      git push -u origin master >/dev/null
-   else
-      echo "Can't find \".git\" in the ${gitt}"
-   fi
-fi
+                # Получаем определение функции
+                local func_def
+                func_def=$(psql -tXw -d "$db_name" -c "
+                    SELECT pg_get_functiondef(f.oid)
+                    FROM pg_catalog.pg_proc f
+                    INNER JOIN pg_catalog.pg_namespace n ON (f.pronamespace = n.oid)
+                    WHERE f.proname = '$name' AND n.nspname = '$schema'
+                " | sed 's/[\r]?[[:blank:]]*+$//')
+
+                # Сохраняем в файл
+                echo "$func_def" > "${git_functions}/${func}.sql"
+
+                # Добавляем в git
+                git add "${func}.sql" >/dev/null || true
+            done <<< "$functions"
+
+            # Коммитим изменения
+            git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
+        else
+            echo "Error: Can't find '.git' in ${git_functions}" >&2
+        fi
+    }
+
+    # Обработка таблиц
+    process_tables() {
+        if [[ -d "${git_tables}/.git" ]]; then
+            cd "${git_tables}" || exit 1
+
+            # Получаем список таблиц
+            local tables
+            tables=$(psql -tXw -d "$db_name" -c "
+                SELECT ns.nspname || '.' || cl.relname
+                FROM pg_class cl
+                JOIN pg_namespace ns ON ns.oid = cl.relnamespace
+                JOIN git.schemas cls ON cls.scheme_name = ns.nspname
+                WHERE cl.relkind = 'r'
+            ")
+
+            # Обрабатываем каждую таблицу
+            while IFS= read -r table; do
+                local schema="${table%%.*}"
+                local name="${table##*.}"
+
+                # Получаем и выполняем команды дампа
+                local dump_cmd
+                dump_cmd=$(psql -tXw -d "$db_name" -c "
+                    SELECT git.get_dump_cmd(p_table_name => '$name', p_schema_name => '$schema', p_mode => 1)
+                ")
+                eval "$dump_cmd" > "${git_tables}/${table}.sql"
+
+                dump_cmd=$(psql -tXw -d "$db_name" -c "
+                    SELECT git.get_dump_cmd(p_table_name => '$name', p_schema_name => '$schema', p_mode => 2)
+                ")
+                eval "$dump_cmd" >> "${git_tables}/${table}.sql"
+
+                # Добавляем в git
+                git add "${table}.sql" >/dev/null || true
+            done <<< "$tables"
+
+            # Коммитим изменения
+            git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
+        else
+            echo "Error: Can't find '.git' in ${git_tables}" >&2
+        fi
+    }
+
+    # Выполняем обработку
+    process_functions
+    process_tables
+}
+
+# Запускаем основную функцию с переданными аргументами
+main "$@"
