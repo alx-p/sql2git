@@ -1,6 +1,6 @@
 #set -x
 #!/bin/bash
-set -euo pipefail  # Более строгий режим выполнения
+set -euo pipefail
 
 ### Функции
 usage() {
@@ -31,12 +31,11 @@ main() {
             cd "${git_functions}" || exit 1
 
             # Получаем список функций
-            local functions
             functions=$(psql -tXw -d "$db_name" -c "
                 SELECT specific_schema || '.' || routine_name
-                FROM information_schema.routines
-                WHERE specific_schema NOT IN ('pg_catalog', 'information_schema', 'tech_docum', 'temp')
-            ")
+                  FROM information_schema.routines
+                 WHERE specific_schema NOT IN ('pg_catalog', 'information_schema', 'tech_docum', 'temp')
+            " | sed 's/^[[:space:]]*//')
 
             # Обрабатываем каждую функцию
             while IFS= read -r func; do
@@ -47,19 +46,18 @@ main() {
                 local func_def
                 func_def=$(psql -tXw -d "$db_name" -c "
                     SELECT pg_get_functiondef(f.oid)
-                    FROM pg_catalog.pg_proc f
-                    INNER JOIN pg_catalog.pg_namespace n ON (f.pronamespace = n.oid)
-                    WHERE f.proname = '$name' AND n.nspname = '$schema'
+                      FROM pg_catalog.pg_proc f
+                     INNER JOIN pg_catalog.pg_namespace n ON (f.pronamespace = n.oid)
+                     WHERE f.proname = '$name' 
+                       AND n.nspname = '$schema'
                 " | sed 's/[\r]?[[:blank:]]*+$//')
 
                 # Сохраняем в файл
                 echo "$func_def" > "${git_functions}/${func}.sql"
 
-                # Добавляем в git
                 git add "${func}.sql" >/dev/null || true
             done <<< "$functions"
 
-            # Коммитим изменения
             git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
         else
             echo "Error: Can't find '.git' in ${git_functions}" >&2
@@ -72,14 +70,13 @@ main() {
             cd "${git_tables}" || exit 1
 
             # Получаем список таблиц
-            local tables
             tables=$(psql -tXw -d "$db_name" -c "
                 SELECT ns.nspname || '.' || cl.relname
-                FROM pg_class cl
-                JOIN pg_namespace ns ON ns.oid = cl.relnamespace
-                JOIN git.schemas cls ON cls.scheme_name = ns.nspname
-                WHERE cl.relkind = 'r'
-            ")
+                  FROM pg_class cl
+                  JOIN pg_namespace ns ON ns.oid = cl.relnamespace
+                  JOIN git.schemas cls ON cls.scheme_name = ns.nspname
+                 WHERE cl.relkind = 'r'
+            " | sed 's/^[[:space:]]*//')
 
             # Обрабатываем каждую таблицу
             while IFS= read -r table; do
@@ -98,11 +95,9 @@ main() {
                 ")
                 eval "$dump_cmd" >> "${git_tables}/${table}.sql"
 
-                # Добавляем в git
                 git add "${table}.sql" >/dev/null || true
             done <<< "$tables"
 
-            # Коммитим изменения
             git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
         else
             echo "Error: Can't find '.git' in ${git_tables}" >&2
