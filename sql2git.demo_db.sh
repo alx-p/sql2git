@@ -1,26 +1,28 @@
-#set -x
 #!/bin/bash
+#set -x
 set -euo pipefail
 
-### Функции
 usage() {
     myname=$(basename "$0")
+    echo $1
     echo "Usage: $myname <base_path>"
-    echo "Example: $myname /path/to/git/repo"
+    echo "Example: $myname /var/lib/postgresql/git"
     exit 1
 }
 
-### Основная логика
 main() {
-    local base_path="$1"
 
-    # Проверка аргументов
-    if [[ -z "$base_path" ]]; then
-        usage
+    if [ "$#" -eq 0 ]; then
+        usage "Не переданы параметры"
     fi
 
-    # Удаляем завершающий слеш, если он есть
-    local gitbase="${base_path%/}"
+    base_path="$1"
+
+    if [[ -z "$base_path" ]]; then
+        usage "Указанный параметр пустой"
+    fi
+    
+    local gitbase="${base_path%/}" # Удаляем завершающий слеш, если он есть
     local git_functions="${gitbase}/functions"
     local git_tables="${gitbase}/tables"
     local db_name="sql2git_demo_db"
