@@ -1,7 +1,0 @@
-sql2git-demo/data
-sql2git-demo/pg_dumps
-sql2git-demo/dumps
-sql2git-demo/sql2git.demo_db.sh
-sql2git-demo/gitschema.sql
-.gitignore
-sql2git.demo_db copy.sh
