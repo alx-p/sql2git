@@ -5,27 +5,31 @@ set -euo pipefail
 usage() {
     myname=$(basename "$0")
     echo $1
-    echo "Usage: $myname <base_path>"
-    echo "Example: $myname /var/lib/postgresql/git"
+    echo "Usage: $myname <base_path> <db_name>"
+    echo "Example: $myname /var/lib/postgresql/git sql2git_demo_db"
     exit 1
 }
 
 main() {
 
-    if [ "$#" -eq 0 ]; then
+    if [ "$#" -ne 2 ]; then
         usage "Не переданы параметры"
     fi
 
     base_path="$1"
+    db_name="$2"
 
     if [[ -z "$base_path" ]]; then
-        usage "Указанный параметр пустой"
+        usage "Указанный параметр <base_path> пустой"
     fi
-    
+
+    if [[ -z "$db_name" ]]; then
+        usage "Указанный параметр <db_name> пустой"
+    fi
+
     local gitbase="${base_path%/}" # Удаляем завершающий слеш, если он есть
     local git_functions="${gitbase}/functions"
-    local git_tables="${gitbase}/tables"
-    local db_name="sql2git_demo_db"
+    local git_tables="${gitbase}/tables"   
 
     # Обработка функций
     process_functions() {
@@ -61,6 +65,7 @@ main() {
             done <<< "$functions"
 
             git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
+            # git push -u origin master >/dev/null
         else
             echo "Error: Can't find '.git' in ${git_functions}" >&2
         fi
@@ -75,8 +80,8 @@ main() {
             tables=$(psql -tXw -d "$db_name" -c "
                 SELECT ns.nspname || '.' || cl.relname
                   FROM pg_class cl
-                  JOIN pg_namespace ns ON ns.oid = cl.relnamespace
-                  JOIN git.schemas cls ON cls.scheme_name = ns.nspname
+                 INNER JOIN pg_namespace ns ON ns.oid = cl.relnamespace
+                 INNER JOIN git.schemas cls ON cls.scheme_name = ns.nspname
                  WHERE cl.relkind = 'r'
             " | sed 's/^[[:space:]]*//')
 
@@ -85,8 +90,6 @@ main() {
                 local schema="${table%%.*}"
                 local name="${table##*.}"
 
-                # Получаем и выполняем команды дампа
-                local dump_cmd
                 dump_cmd=$(psql -tXw -d "$db_name" -c "
                     SELECT git.get_dump_cmd(p_table_name => '$name', p_schema_name => '$schema', p_mode => 1)
                 ")
@@ -101,15 +104,14 @@ main() {
             done <<< "$tables"
 
             git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
+            #git push -u origin master >/dev/null
         else
             echo "Error: Can't find '.git' in ${git_tables}" >&2
         fi
     }
 
-    # Выполняем обработку
     process_functions
     process_tables
 }
 
-# Запускаем основную функцию с переданными аргументами
 main "$@"
