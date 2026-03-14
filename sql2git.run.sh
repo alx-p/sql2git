@@ -27,7 +27,7 @@ main() {
         usage "Указанный параметр <db_name> пустой"
     fi
 
-    local gitbase="${base_path%/}" # Удаляем завершающий слеш, если он есть
+    gitbase="${base_path%/}" # Удаляем завершающий слеш, если он есть
     local git_functions="${gitbase}/functions"
     local git_tables="${gitbase}/tables"   
 
