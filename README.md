@@ -17,7 +17,7 @@ cd sql2git-demo
 ```
 2. Скопируйте актуальные файлы в каталог sql2git-demo
 ```
-cp ../gitschema.sql ../sql2git.demo_db.sh .
+cp ../gitschema.sql ../sql2git.run.sh ../sql2git.del.sh .
 ```
 3. Запустите docker compose
 ```

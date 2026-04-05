@@ -31,7 +31,7 @@ main() {
     local git_functions="${gitbase}/functions"
     local git_tables="${gitbase}/tables"   
 
-    # Обработка функций
+    # Функции
     process_functions() {
         if [[ -d "${git_functions}/.git" ]]; then
             cd "${git_functions}" || exit 1
@@ -71,37 +71,47 @@ main() {
         fi
     }
 
-    # Обработка таблиц
+    # Таблицы
     process_tables() {
         if [[ -d "${git_tables}/.git" ]]; then
             cd "${git_tables}" || exit 1
 
-            # Получаем список таблиц
-            tables=$(psql -tXw -d "$db_name" -c "
-                SELECT ns.nspname || '.' || cl.relname
+            psql -tXw -d "$db_name" -c "
+                SELECT ns.nspname schema_name,
+                       cl.relname table_name,
+                       case when r.id is null then 0 else 1 end get_data
                   FROM pg_class cl
                  INNER JOIN pg_namespace ns ON ns.oid = cl.relnamespace
                  INNER JOIN git.schemas cls ON cls.scheme_name = ns.nspname
+                  left join git.refs r on (r.scheme_name, r.table_name) = (ns.nspname, cl.relname)
                  WHERE cl.relkind = 'r'
-            " | sed 's/^[[:space:]]*//')
+            " | while IFS='|' read -r schema_name table_name get_data; do
 
-            # Обрабатываем каждую таблицу
-            while IFS= read -r table; do
-                local schema="${table%%.*}"
-                local name="${table##*.}"
+                schema_name=$(echo "$schema_name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                table_name=$(echo "$table_name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                get_data=$(echo "$get_data" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+                schema_table_name="$schema_name.$table_name"
+
+                # echo "Table: $schema_table_name"
+               
+                if [ -z "$schema_name" ] && [ -z "$table_name" ]; then
+                    continue
+                fi
 
                 dump_cmd=$(psql -tXw -d "$db_name" -c "
-                    SELECT git.get_dump_cmd(p_table_name => '$name', p_schema_name => '$schema', p_mode => 1)
+                    SELECT git.get_dump_cmd(p_table_name => '$table_name', p_schema_name => '$schema_name', p_mode => 1)
                 ")
-                eval "$dump_cmd" > "${git_tables}/${table}.sql"
+                eval "$dump_cmd" > "${git_tables}/${schema_table_name}.sql"
 
                 dump_cmd=$(psql -tXw -d "$db_name" -c "
-                    SELECT git.get_dump_cmd(p_table_name => '$name', p_schema_name => '$schema', p_mode => 2)
+                    SELECT git.get_dump_cmd(p_table_name => '$table_name', p_schema_name => '$schema_name', p_mode => 2)
                 ")
-                eval "$dump_cmd" >> "${git_tables}/${table}.sql"
+                eval "$dump_cmd" >> "${git_tables}/${schema_table_name}.sql"
 
-                git add "${table}.sql" >/dev/null || true
-            done <<< "$tables"
+                git add "${schema_table_name}.sql" >/dev/null || true
+            
+            done
 
             git commit -a -m "cron backup $(date +'%d.%m.%Y %R')" >/dev/null || true
             #git push -u origin master >/dev/null
