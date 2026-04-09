@@ -77,14 +77,14 @@ main() {
             cd "${git_tables}" || exit 1
 
             psql -tXw -d "$db_name" -c "
-                SELECT ns.nspname schema_name,
+                select ns.nspname schema_name,
                        cl.relname table_name,
                        case when r.id is null then 0 else 1 end get_data
-                  FROM pg_class cl
-                 INNER JOIN pg_namespace ns ON ns.oid = cl.relnamespace
-                 INNER JOIN git.schemas cls ON cls.scheme_name = ns.nspname
+                  from pg_class cl
+                 inner join pg_namespace ns on ns.oid = cl.relnamespace
+                 inner join git.schemas s on s.scheme_name = ns.nspname
                   left join git.refs r on (r.scheme_name, r.table_name) = (ns.nspname, cl.relname)
-                 WHERE cl.relkind = 'r'
+                 where cl.relkind = 'r'
             " | while IFS='|' read -r schema_name table_name get_data; do
 
                 schema_name=$(echo "$schema_name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')

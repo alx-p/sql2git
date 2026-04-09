@@ -1,12 +1,5 @@
 CREATE SCHEMA git;
 
-
-ALTER SCHEMA git OWNER TO postgres;
-
---
--- Name: get_dump_cmd(character varying, character varying, integer); Type: FUNCTION; Schema: git; Owner: postgres
---
-
 CREATE FUNCTION git.get_dump_cmd(p_schema_name character varying, p_table_name character varying, p_mode integer) RETURNS character varying
     LANGUAGE plpgsql
     AS $_$
@@ -34,30 +27,12 @@ exception
 end;
 $_$;
 
-
-ALTER FUNCTION git.get_dump_cmd(p_schema_name character varying, p_table_name character varying, p_mode integer) OWNER TO postgres;
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
-
---
--- Name: refs; Type: TABLE; Schema: git; Owner: postgres
---
-
 CREATE TABLE git.refs (
     id integer NOT NULL,
     scheme_name character varying NOT NULL,
     table_name character varying NOT NULL,
     create_date timestamp without time zone DEFAULT now() NOT NULL
 );
-
-
-ALTER TABLE git.refs OWNER TO postgres;
-
---
--- Name: refs_id_seq; Type: SEQUENCE; Schema: git; Owner: postgres
---
 
 CREATE SEQUENCE git.refs_id_seq
     AS integer
@@ -67,32 +42,13 @@ CREATE SEQUENCE git.refs_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER TABLE git.refs_id_seq OWNER TO postgres;
-
---
--- Name: refs_id_seq; Type: SEQUENCE OWNED BY; Schema: git; Owner: postgres
---
-
 ALTER SEQUENCE git.refs_id_seq OWNED BY git.refs.id;
-
-
---
--- Name: schemas; Type: TABLE; Schema: git; Owner: postgres
---
 
 CREATE TABLE git.schemas (
     id integer NOT NULL,
     scheme_name character varying NOT NULL,
     create_date timestamp without time zone DEFAULT now() NOT NULL
 );
-
-
-ALTER TABLE git.schemas OWNER TO postgres;
-
---
--- Name: schemas_id_seq; Type: SEQUENCE; Schema: git; Owner: postgres
---
 
 CREATE SEQUENCE git.schemas_id_seq
     AS integer
@@ -102,78 +58,24 @@ CREATE SEQUENCE git.schemas_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER TABLE git.schemas_id_seq OWNER TO postgres;
-
---
--- Name: schemas_id_seq; Type: SEQUENCE OWNED BY; Schema: git; Owner: postgres
---
-
 ALTER SEQUENCE git.schemas_id_seq OWNED BY git.schemas.id;
-
-
---
--- Name: refs id; Type: DEFAULT; Schema: git; Owner: postgres
---
 
 ALTER TABLE ONLY git.refs ALTER COLUMN id SET DEFAULT nextval('git.refs_id_seq'::regclass);
 
-
---
--- Name: schemas id; Type: DEFAULT; Schema: git; Owner: postgres
---
-
 ALTER TABLE ONLY git.schemas ALTER COLUMN id SET DEFAULT nextval('git.schemas_id_seq'::regclass);
 
+INSERT INTO git.refs (id,scheme_name,table_name,create_date)
+VALUES (1,'git','schemas','2026-02-05 22:38:36.726709');
 
---
--- Data for Name: refs; Type: TABLE DATA; Schema: git; Owner: postgres
---
-
-COPY git.refs (id, scheme_name, table_name, create_date) FROM stdin;
-1	git	schemas	2026-02-05 22:38:36.726709
-\.
-
-
---
--- Data for Name: schemas; Type: TABLE DATA; Schema: git; Owner: postgres
---
-
-COPY git.schemas (id, scheme_name, create_date) FROM stdin;
-1	git	2026-02-05 22:26:18.758152
-\.
-
-
---
--- Name: refs_id_seq; Type: SEQUENCE SET; Schema: git; Owner: postgres
---
+INSERT INTO git.schemas (id,scheme_name,create_date) 
+VALUES (1,'git','2026-02-05 22:26:18.758152');
 
 SELECT pg_catalog.setval('git.refs_id_seq', 33, true);
 
-
---
--- Name: schemas_id_seq; Type: SEQUENCE SET; Schema: git; Owner: postgres
---
-
 SELECT pg_catalog.setval('git.schemas_id_seq', 33, true);
-
-
---
--- Name: refs refs_pk; Type: CONSTRAINT; Schema: git; Owner: postgres
---
 
 ALTER TABLE ONLY git.refs
     ADD CONSTRAINT refs_pk PRIMARY KEY (id);
 
-
---
--- Name: schemas schemas_pk; Type: CONSTRAINT; Schema: git; Owner: postgres
---
-
 ALTER TABLE ONLY git.schemas
     ADD CONSTRAINT schemas_pk PRIMARY KEY (id);
-
-
---
--- PostgreSQL database dump complete
---
