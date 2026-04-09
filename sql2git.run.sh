@@ -104,10 +104,10 @@ main() {
                 ")
                 eval "$dump_cmd" > "${git_tables}/${schema_table_name}.sql"
 
-                dump_cmd=$(psql -tXw -d "$db_name" -c "
-                    SELECT git.get_dump_cmd(p_table_name => '$table_name', p_schema_name => '$schema_name', p_mode => 2)
-                ")
-                eval "$dump_cmd" >> "${git_tables}/${schema_table_name}.sql"
+                if [ "$get_data" = "1" ]; then
+                    dump_cmd=$(psql -tXw -d "$db_name" -c "select * from '$schema_table_name' order by 1;")
+                    eval "$dump_cmd" >> "${git_tables}/${schema_table_name}.sql"
+                fi
 
                 git add "${schema_table_name}.sql" >/dev/null || true
             
