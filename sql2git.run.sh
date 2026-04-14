@@ -2,7 +2,7 @@
 #set -x
 set -euo pipefail
 
-usage() {
+usage_message() {
     myname=$(basename "$0")
     echo $1
     echo "Usage: $myname <base_path> <db_name>"
@@ -13,18 +13,18 @@ usage() {
 main() {
 
     if [ "$#" -ne 2 ]; then
-        usage "Не переданы параметры"
+        usage_message "Не переданы параметры"
     fi
 
     base_path="$1"
     db_name="$2"
 
     if [[ -z "$base_path" ]]; then
-        usage "Указанный параметр <base_path> пустой"
+        usage_message "Указанный параметр <base_path> пустой"
     fi
 
     if [[ -z "$db_name" ]]; then
-        usage "Указанный параметр <db_name> пустой"
+        usage_message "Указанный параметр <db_name> пустой"
     fi
 
     gitbase="${base_path%/}" # Удаляем завершающий слеш, если он есть
@@ -79,7 +79,7 @@ main() {
             psql -tXw -d "$db_name" -c "
                 select ns.nspname schema_name,
                        cl.relname table_name,
-                       case when r.id is null then 0 else 1 end get_data
+                       case when r.table_name is null then 0 else 1 end get_data
                   from pg_class cl
                  inner join pg_namespace ns on ns.oid = cl.relnamespace
                  inner join git.schemas s on s.scheme_name = ns.nspname

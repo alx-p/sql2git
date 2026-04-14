@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage() {
+usage_message() {
     myname=$(basename "$0")
     echo $1
     echo "Usage: $myname <base_path>"
@@ -11,13 +11,13 @@ usage() {
 main() {
 
     if [ "$#" -eq 0 ]; then
-        usage "Не передан параметр"
+        usage_message "Не передан параметр"
     fi
 
     base_path="$1"
 
     if [[ -z "$base_path" ]]; then
-        usage "Указанный параметр <base_path> пустой"
+        usage_message "Указанный параметр <base_path> пустой"
     fi
 
     gitbase="${base_path%/}" # Удаляем завершающий слеш, если он есть
