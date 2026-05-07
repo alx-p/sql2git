@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict PURfzmJFVC4dPrgF3FfIAnYqvIcFfOF07jpInpeHky2t1kXORrOc7aCbofb9Uyg
-
 -- Dumped from database version 16.12 (Debian 16.12-1.pgdg12+1)
 -- Dumped by pg_dump version 16.12 (Debian 16.12-1.pgdg12+1)
 
@@ -1125,6 +1123,3 @@ ALTER TABLE ONLY bookings.tickets
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict PURfzmJFVC4dPrgF3FfIAnYqvIcFfOF07jpInpeHky2t1kXORrOc7aCbofb9Uyg
-
