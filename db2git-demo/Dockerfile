@@ -25,7 +25,7 @@ RUN cd functions && \
     git init && \
     (crontab -l 2>/dev/null; echo "*/5 * * * *  /var/lib/postgresql/git/sql2git.run.sh /var/lib/postgresql/git sql2git_demo_db 2>/dev/null") | crontab - && \
     (crontab -l 2>/dev/null; echo "30 00 * * 0  /var/lib/postgresql/git/sql2git.del.sh /var/lib/postgresql/git 2>/dev/null") | crontab - && \
-    git config --global user.name "sql2git" && \
+    git config --global user.name "db2git" && \
     git config --global user.email "email@example.com"
 
 WORKDIR /var/lib/postgresql
